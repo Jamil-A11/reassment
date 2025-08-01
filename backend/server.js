@@ -1,48 +1,62 @@
+const mysql = require('mysql2');
 const express = require('express');
 const cors = require('cors');
-const bodyParser = require('body-parser');
-const db = require('./db');
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
+
+// MySQL connection
+const db = mysql.createConnection({
+  host: '127.0.0.1',
+  user: 'root',
+  password: '', // or your MySQL password
+  database: 'physio_ease'
+});
+
+db.connect(err => {
+  if (err) {
+    console.error('MySQL connection failed:', err);
+  } else {
+    console.log('MySQL connected...');
+  }
+});
 
 // GET physiotherapists
 app.get('/physiotherapists', (req, res) => {
-  const sql = `SELECT id, name, specialization FROM physiotherapists`;
-  db.query(sql, (err, results) => {
+  db.query('SELECT * FROM physiotherapists', (err, results) => {
     if (err) {
-      console.error("Error fetching physiotherapists:", err);
-      return res.status(500).json({ error: "Failed to fetch physiotherapists" });
+      console.error('Error fetching physiotherapists:', err);
+      return res.status(500).json({ error: 'Failed to fetch physiotherapists' });
     }
     res.json(results);
   });
 });
 
-// POST: Book appointment with physiotherapist_id
+// POST book appointment
 app.post('/book', (req, res) => {
+    console.log('Incoming POST body:', req.body);
   const { patient_name, email, physiotherapist_id, appointment_date, appointment_time } = req.body;
 
   if (!patient_name || !email || !physiotherapist_id || !appointment_date || !appointment_time) {
-    return res.status(400).send("All fields are required.");
+    return res.status(400).json({ error: 'All fields are required' });
   }
 
   const sql = `
-    INSERT INTO appointments 
-    (patient_name, email, physiotherapist_id, appointment_date, appointment_time)
+    INSERT INTO appointments (patient_name, email, physiotherapist_id, appointment_date, appointment_time)
     VALUES (?, ?, ?, ?, ?)
   `;
 
   db.query(sql, [patient_name, email, physiotherapist_id, appointment_date, appointment_time], (err) => {
     if (err) {
-      console.error("Error booking appointment:", err);
-      return res.status(500).send("Error booking appointment.");
+      console.error('Error booking appointment:', err);
+      return res.status(500).json({ error: 'Booking failed' });
     }
-    res.send("Appointment booked successfully!");
+    res.json({ message: 'Appointment booked successfully' });
   });
 });
 
-app.listen(5000, () => {
-  console.log('Server running on http://localhost:5000');
-});
-
+app.listen(5000, '127.0.0.1', () => {
+    console.log('Server running on http://127.0.0.1:5000');
+  });
+  

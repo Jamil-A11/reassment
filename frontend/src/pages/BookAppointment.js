@@ -1,109 +1,109 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import '../App.css';
 
-const BookAppointment = () => {
-  const [formData, setFormData] = useState({
-    patient_name: '',
-    email: '',
-    physiotherapist_id: '',
-    appointment_date: '',
-    appointment_time: '',
-  });
-
+function BookAppointment() {
   const [physiotherapists, setPhysiotherapists] = useState([]);
+  const [selectedPhysio, setSelectedPhysio] = useState(null);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
+  const [status, setStatus] = useState('');
 
+  // Fetch doctors on load
   useEffect(() => {
-    axios.get('http://localhost:5000/physiotherapists')
+    axios.get('http://127.0.0.1:5000/physiotherapists')
       .then(response => setPhysiotherapists(response.data))
-      .catch(error => console.error('Error fetching physiotherapists:', error));
+      .catch(error => {
+        console.error('Failed to load physiotherapists:', error);
+        setStatus('Failed to load doctors');
+      });
   }, []);
 
-  const handleChange = e => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = e => {
+  // Submit form
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    axios.post('http://localhost:5000/book', formData)
-      .then(res => alert(res.data))
-      .catch(err => alert('Booking failed: ' + err.response?.data || err.message));
+    if (!selectedPhysio || !name || !email || !date || !time) {
+      setStatus('Please fill all fields.');
+      return;
+    }
+
+    try {
+      const formattedDate = new Date(date).toISOString().split('T')[0];
+      const formattedTime = time.length === 5 ? `${time}:00` : time;
+
+      const res = await axios.post('http://127.0.0.1:5000/book', {
+        patient_name: name,
+        email: email,
+        physiotherapist_id: selectedPhysio.id,
+        appointment_date: formattedDate,
+        appointment_time: formattedTime
+      });
+
+      if (res.data.message === 'Appointment booked successfully') {
+        setStatus(' Appointment booked successfully!');
+      } else {
+        setStatus('Booking failed. Try again.');
+      }
+    } catch (err) {
+      console.error(err);
+      setStatus(' Booking failed. Try again.');
+    }
   };
 
   return (
-    <div className="form-container">
-      <h2>Book an Appointment</h2>
-      <form onSubmit={handleSubmit}>
-        <label>
-          Full Name:
-          <input
-            type="text"
-            name="patient_name"
-            value={formData.patient_name}
-            onChange={handleChange}
-            required
-          />
-        </label>
+    <div style={{ textAlign: 'center', marginTop: '40px' }}>
+      <h1>Book an Appointment</h1>
 
-        <label>
-          Email:
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
-        </label>
-
-        <label>
-          Choose Physiotherapist:
-          <select
-            name="physiotherapist_id"
-            value={formData.physiotherapist_id}
-            onChange={handleChange}
-            required
+      <h3>Select a Physiotherapist:</h3>
+      <div style={{ marginBottom: '20px' }}>
+        {physiotherapists.map((physio) => (
+          <button
+            key={physio.id}
+            onClick={() => setSelectedPhysio(physio)}
+            style={{
+              margin: '5px',
+              padding: '10px',
+              borderRadius: '5px',
+              border: selectedPhysio?.id === physio.id ? '2px solid purple' : '1px solid #ccc',
+              backgroundColor: selectedPhysio?.id === physio.id ? '#6a0dad' : '#f0f0f0',
+              color: selectedPhysio?.id === physio.id ? 'white' : 'black',
+              cursor: 'pointer'
+            }}
           >
-            <option value="">-- Select --</option>
-            {physiotherapists.map(pt => (
-              <option key={pt.id} value={pt.id}>
-                {pt.name} ({pt.specialization})
-              </option>
-            ))}
-          </select>
-        </label>
+            {physio.name} ({physio.specialization})
+          </button>
+        ))}
+      </div>
 
-        <label>
-          Appointment Date:
-          <input
-            type="date"
-            name="appointment_date"
-            value={formData.appointment_date}
-            onChange={handleChange}
-            required
-          />
-        </label>
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label>Patient Name:</label><br />
+          <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+        </div><br />
 
-        <label>
-          Appointment Time:
-          <input
-            type="time"
-            name="appointment_time"
-            value={formData.appointment_time}
-            onChange={handleChange}
-            required
-          />
-        </label>
+        <div>
+          <label>Email:</label><br />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        </div><br />
 
-        <button type="submit">Submit</button>
+        <div>
+          <label>Appointment Date:</label><br />
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+        </div><br />
+
+        <div>
+          <label>Appointment Time:</label><br />
+          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} required />
+        </div><br />
+
+        <button type="submit">Book Appointment</button>
       </form>
+
+      {status && <p style={{ marginTop: '20px', color: 'green' }}>{status}</p>}
     </div>
   );
-};
+}
 
 export default BookAppointment;
-
-
-
-
