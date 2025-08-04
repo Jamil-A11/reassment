@@ -10,7 +10,7 @@ app.use(express.json());
 const db = mysql.createConnection({
   host: '127.0.0.1',
   user: 'root',
-  password: '', // or your MySQL password
+  password: '', 
   database: 'physio_ease'
 });
 
@@ -35,11 +35,17 @@ app.get('/physiotherapists', (req, res) => {
 
 // POST book appointment
 app.post('/book', (req, res) => {
-    console.log('Incoming POST body:', req.body);
+  console.log('Incoming POST body:', req.body);
   const { patient_name, email, physiotherapist_id, appointment_date, appointment_time } = req.body;
 
+  // Check for missing fields
   if (!patient_name || !email || !physiotherapist_id || !appointment_date || !appointment_time) {
     return res.status(400).json({ error: 'All fields are required' });
+  }
+
+  // Basic email format validation
+  if (!email.includes('@')) {
+    return res.status(400).json({ error: 'Invalid email address' });
   }
 
   const sql = `
@@ -56,7 +62,7 @@ app.post('/book', (req, res) => {
   });
 });
 
+// Start server
 app.listen(5000, '127.0.0.1', () => {
-    console.log('Server running on http://127.0.0.1:5000');
-  });
-  
+  console.log('Server running on http://127.0.0.1:5000');
+});
